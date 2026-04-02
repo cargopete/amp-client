@@ -65,6 +65,27 @@ let mut client = Client::builder()
     .await?;
 ```
 
+## Connection pool
+
+For multi-threaded applications use `Pool` instead of wrapping `Client` in `Arc<Mutex<>>`:
+
+```rust
+use amp_client::Pool;
+
+let pool = Pool::builder("grpc://localhost:1602")
+    .max_size(10)
+    .build()
+    .await?;
+
+// Pool is Clone — share it freely across tasks.
+let pool2 = pool.clone();
+tokio::spawn(async move {
+    let mut client = pool2.get().await?;
+    client.query("SELECT 1").await?;
+    // connection returned to pool on drop
+});
+```
+
 ## SQL
 
 Amp uses standard SQL. Dataset tables are referenced as `"namespace/dataset"`:
@@ -160,8 +181,8 @@ Things planned or under consideration, roughly in order:
 - `list_datasets()` — enumerate deployed datasets (returns empty on a bare `ampd solo` with no manifests)
 - `describe(table_ref)` — return the Arrow schema for a table reference without fetching any rows
 
-**v0.4 — connection pool**
-- A `Pool` type for multi-threaded applications that need shared, concurrent access without wrapping in `Arc<Mutex<>>`
+**~~v0.4 — connection pool~~** ✓ _done_
+- `Pool` / `PoolBuilder` / `PooledClient` for multi-threaded applications; `Pool` is `Clone + Send + Sync`, connections are lazy and returned on drop
 
 **v0.5 — DataFusion integration** _(optional feature flag)_
 - A DataFusion `TableProvider` that registers Amp datasets as queryable tables, enabling joins between Amp data and local data sources

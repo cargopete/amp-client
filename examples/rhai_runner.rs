@@ -12,7 +12,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use amp_client::{Client, RecordBatch};
+use amp_client::{Client, Pool, RecordBatch};
 use futures::StreamExt;
 use arrow_array::{
     Array, BooleanArray, Date32Array, Date64Array, Float32Array, Float64Array, Int16Array,
@@ -139,6 +139,20 @@ fn main() {
             .into_iter()
             .collect::<Result<Vec<_>, _>>()
             .expect("query_stream failed");
+        match batches_to_rhai(&batches) {
+            d if d.is::<Vec<Dynamic>>() => d.cast::<Vec<Dynamic>>(),
+            _ => vec![],
+        }
+    });
+
+    // pool_query(sql: String) -> Array of row maps (via a fresh pool)
+    let rt_handle = rt.handle().clone();
+    engine.register_fn("pool_query", move |sql: String| -> Vec<Dynamic> {
+        let pool = rt_handle
+            .block_on(Pool::connect("grpc://localhost:1602"))
+            .expect("pool connect failed");
+        let mut c = rt_handle.block_on(pool.get()).expect("pool get failed");
+        let batches = rt_handle.block_on(c.query(&sql)).expect("pool query failed");
         match batches_to_rhai(&batches) {
             d if d.is::<Vec<Dynamic>>() => d.cast::<Vec<Dynamic>>(),
             _ => vec![],

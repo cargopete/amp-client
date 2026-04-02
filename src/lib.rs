@@ -1,9 +1,11 @@
 mod auth;
 mod client;
 mod error;
+mod pool;
 
 pub use client::{Client, ClientBuilder};
 pub use error::{Error, Result};
+pub use pool::{Pool, PoolBuilder, PooledClient};
 
 // Re-export the Arrow types callers will need to work with results.
 pub use arrow_array::RecordBatch;

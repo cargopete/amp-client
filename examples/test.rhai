@@ -53,5 +53,12 @@ assert("id"    in schema, "expected field: id");
 assert("label" in schema, "expected field: label");
 assert("score" in schema, "expected field: score");
 
+print("── pool ────────────────────────────────────────");
+
+let rows = pool_query("SELECT 99 AS pooled");
+assert(rows.len() == 1, "expected 1 row from pool");
+assert(rows[0].pooled == 99, "expected pooled=99");
+print(`pool query returned: pooled=${rows[0].pooled}`);
+
 print("");
 print("all assertions passed ✓");

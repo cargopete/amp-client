@@ -11,6 +11,7 @@ categories = ["database"]
 [dependencies]
 arrow-array = "58"
 async-stream = "0.3"
+deadpool = { version = "0.13", features = ["managed", "rt_tokio_1"] }
 arrow-flight = { version = "58", features = ["flight-sql-experimental"] }
 arrow-schema = "58"
 futures = "0.3"

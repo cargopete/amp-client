@@ -19,6 +19,9 @@ pub enum Error {
 
     #[error("config: {0}")]
     Config(String),
+
+    #[error("pool: {0}")]
+    Pool(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
