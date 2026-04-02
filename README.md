@@ -109,6 +109,31 @@ AMP_CONFIG=config.toml ampd solo --flight-server --jsonl-server
 
 ---
 
+## Testing locally
+
+The repo includes a Rhai-based integration test runner. A single script starts `ampd`, runs the test suite, and shuts everything down:
+
+```sh
+./test.sh
+```
+
+To run a custom Rhai script instead:
+
+```sh
+./test.sh path/to/your/script.rhai
+```
+
+Inside a script, `query(sql)` returns an array of row maps:
+
+```rhai
+let rows = query("SELECT current_date AS today, 42 AS answer");
+print(`today=${rows[0].today}  answer=${rows[0].answer}`);
+```
+
+See [`examples/test.rhai`](examples/test.rhai) for the full example. Requires `ampd` installed — see [Running ampd locally](#running-ampd-locally) above.
+
+---
+
 ## Roadmap
 
 Things planned or under consideration, roughly in order:
