@@ -12,7 +12,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use amp_client::{Client, Pool, RecordBatch};
+use amp_client::{Client, Pool, RecordBatch, RetryConfig};
 use futures::StreamExt;
 use arrow_array::{
     Array, BooleanArray, Date32Array, Date64Array, Float32Array, Float64Array, Int16Array,
@@ -139,6 +139,24 @@ fn main() {
             .into_iter()
             .collect::<Result<Vec<_>, _>>()
             .expect("query_stream failed");
+        match batches_to_rhai(&batches) {
+            d if d.is::<Vec<Dynamic>>() => d.cast::<Vec<Dynamic>>(),
+            _ => vec![],
+        }
+    });
+
+    // query_with_retry(sql) -> runs via a client built with RetryConfig enabled
+    let rt_handle = rt.handle().clone();
+    engine.register_fn("query_with_retry", move |sql: String| -> Vec<Dynamic> {
+        let mut c = rt_handle
+            .block_on(
+                Client::builder()
+                    .url("grpc://localhost:1602")
+                    .retry_config(RetryConfig { max_attempts: 3, ..RetryConfig::default() })
+                    .build(),
+            )
+            .expect("retry client connect failed");
+        let batches = rt_handle.block_on(c.query(&sql)).expect("retry query failed");
         match batches_to_rhai(&batches) {
             d if d.is::<Vec<Dynamic>>() => d.cast::<Vec<Dynamic>>(),
             _ => vec![],

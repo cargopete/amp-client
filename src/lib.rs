@@ -2,12 +2,14 @@ mod auth;
 mod client;
 mod error;
 mod pool;
+mod retry;
 #[cfg(feature = "datafusion")]
 mod table_provider;
 
 pub use client::{Client, ClientBuilder};
 pub use error::{Error, Result};
 pub use pool::{Pool, PoolBuilder, PooledClient};
+pub use retry::RetryConfig;
 #[cfg(feature = "datafusion")]
 pub use table_provider::AmpTable;
 

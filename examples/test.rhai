@@ -60,5 +60,14 @@ assert(rows.len() == 1, "expected 1 row from pool");
 assert(rows[0].pooled == 99, "expected pooled=99");
 print(`pool query returned: pooled=${rows[0].pooled}`);
 
+print("── retry config (smoke test) ───────────────────");
+
+// query() is backed by retry logic; a successful query with retries enabled
+// should behave identically to one without.
+let rows = query_with_retry("SELECT 'resilient' AS status");
+assert(rows.len() == 1, "expected 1 row from retry-enabled query");
+assert(rows[0].status == "resilient", "expected status=resilient");
+print(`retry query returned: status=${rows[0].status}`);
+
 print("");
 print("all assertions passed ✓");

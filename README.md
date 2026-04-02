@@ -65,6 +65,28 @@ let mut client = Client::builder()
     .await?;
 ```
 
+## Retry and backoff
+
+Retry is opt-in. Configure it on the builder:
+
+```rust
+use std::time::Duration;
+use amp_client::{Client, RetryConfig};
+
+let client = Client::builder()
+    .url("grpc://localhost:1602")
+    .retry_config(RetryConfig {
+        max_attempts:  4,
+        initial_delay: Duration::from_millis(200),
+        max_delay:     Duration::from_secs(10),
+        jitter:        true,
+    })
+    .build()
+    .await?;
+```
+
+Retried on: `Unavailable`, `DeadlineExceeded`, `ResourceExhausted`, `Unknown`, `Aborted`, and transport errors. Streaming (`query_stream`) is not retried.
+
 ## DataFusion integration
 
 Enable the `datafusion` feature to register Amp datasets as DataFusion tables:
@@ -212,11 +234,13 @@ Things planned or under consideration, roughly in order:
 **~~v0.5 — DataFusion integration~~** ✓ _done_
 - `AmpTable` — a DataFusion `TableProvider` behind the `datafusion` feature flag; registers Amp datasets as queryable tables, enabling joins with local data sources
 
+**~~Retry and backoff~~** ✓ _done_
+- `RetryConfig` on `ClientBuilder` — exponential backoff with optional jitter, off by default
+
 **Unscheduled / considering**
 - JSON Lines HTTP transport as a fallback for environments where gRPC is not available
 - `ampctl login` OAuth flow so callers can obtain tokens programmatically
 - Polars `LazyFrame` helper (optional feature flag)
-- Retry and backoff on transient transport errors
 - Async iterator / `for await` ergonomics once `AsyncIterator` stabilises in Rust
 
 Contributions and issue reports are welcome. This is MIT-licensed and entirely independent of Edge & Node.
