@@ -156,9 +156,9 @@ Things planned or under consideration, roughly in order:
 **~~v0.2 — streaming~~** ✓ _done_
 - `query_stream()` returning `impl Stream<Item = Result<RecordBatch>>` for large result sets without materialising everything in memory
 
-**v0.3 — schema introspection**
-- `list_datasets()` — enumerate deployed datasets
-- `describe(dataset)` — return the Arrow schema for a dataset without running a full query
+**~~v0.3 — schema introspection~~** ✓ _done_
+- `list_datasets()` — enumerate deployed datasets (returns empty on a bare `ampd solo` with no manifests)
+- `describe(table_ref)` — return the Arrow schema for a table reference without fetching any rows
 
 **v0.4 — connection pool**
 - A `Pool` type for multi-threaded applications that need shared, concurrent access without wrapping in `Arc<Mutex<>>`

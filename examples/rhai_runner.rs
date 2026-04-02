@@ -145,6 +145,35 @@ fn main() {
         }
     });
 
+    // list_datasets() -> Array of dataset name strings
+    let client_clone = Arc::clone(&client);
+    let rt_handle = rt.handle().clone();
+    engine.register_fn("list_datasets", move || -> Vec<Dynamic> {
+        let mut c = client_clone.lock().unwrap();
+        match rt_handle.block_on(c.list_datasets()) {
+            Ok(names) => names.into_iter().map(Dynamic::from).collect(),
+            Err(e) => {
+                eprintln!("list_datasets: {e} (no datasets deployed?)");
+                vec![]
+            }
+        }
+    });
+
+    // describe(dataset: String) -> Map of field_name -> data_type string
+    let client_clone = Arc::clone(&client);
+    let rt_handle = rt.handle().clone();
+    engine.register_fn("describe", move |dataset: String| -> rhai::Map {
+        let mut c = client_clone.lock().unwrap();
+        let schema = rt_handle
+            .block_on(c.describe(&dataset))
+            .expect("describe failed");
+        schema
+            .fields()
+            .iter()
+            .map(|f| (f.name().as_str().into(), Dynamic::from(f.data_type().to_string())))
+            .collect()
+    });
+
     // query(sql: String) -> Array of row maps
     let client_clone = Arc::clone(&client);
     let rt_handle = rt.handle().clone();

@@ -37,5 +37,21 @@ assert(streamed[0].v == 10, "first streamed value should be 10");
 assert(streamed[2].v == 30, "last streamed value should be 30");
 print(`streamed ${streamed.len()} rows via query_stream`);
 
+print("── list_datasets ───────────────────────────────");
+
+let datasets = list_datasets();
+print(`found ${datasets.len()} dataset(s): ${datasets}`);
+assert(type_of(datasets) == "array", "list_datasets should return an array");
+
+print("── describe ────────────────────────────────────");
+
+// Use a subquery so this works even with no deployed datasets
+let schema = describe("(SELECT 1 AS id, 'hello' AS label, 3.14 AS score)");
+print(`describe subquery: ${schema.len()} field(s): ${schema}`);
+assert(schema.len() == 3, `expected 3 fields, got ${schema.len()}`);
+assert("id"    in schema, "expected field: id");
+assert("label" in schema, "expected field: label");
+assert("score" in schema, "expected field: score");
+
 print("");
 print("all assertions passed ✓");

@@ -1,5 +1,6 @@
-use arrow_array::RecordBatch;
-use arrow_flight::sql::client::FlightSqlServiceClient;
+use arrow_array::{Array, RecordBatch, StringArray};
+use arrow_flight::{sql::client::FlightSqlServiceClient, IpcMessage};
+use arrow_schema::Schema;
 use async_stream::try_stream;
 use futures::{Stream, StreamExt, TryStreamExt};
 use tonic::transport::{Channel, Endpoint};
@@ -54,6 +55,75 @@ impl Client {
                 }
             }
         }
+    }
+
+    /// List all datasets available on the connected Amp node.
+    ///
+    /// Returns names in Amp's `"namespace/table"` convention,
+    /// e.g. `["eth/blocks", "eth/transactions"]`.
+    pub async fn list_datasets(&mut self) -> Result<Vec<String>> {
+        let batches = self.query("SHOW TABLES").await?;
+        let mut datasets = Vec::new();
+
+        for batch in &batches {
+            // SHOW TABLES typically returns: table_catalog, table_schema, table_name, table_type
+            // We prefer table_name; prefix with table_schema if it looks like a namespace.
+            let schema_col = batch.column_by_name("table_schema")
+                .and_then(|c| c.as_any().downcast_ref::<StringArray>());
+            let table_col = batch.column_by_name("table_name")
+                .and_then(|c| c.as_any().downcast_ref::<StringArray>());
+
+            let Some(tables) = table_col else { continue };
+            for row in 0..batch.num_rows() {
+                let table = tables.value(row);
+                let name = if !table.contains('/') {
+                    if let Some(schemas) = schema_col {
+                        let ns = schemas.value(row);
+                        if !schemas.is_null(row) && !ns.is_empty() && ns != "public" {
+                            format!("{ns}/{table}")
+                        } else {
+                            table.to_owned()
+                        }
+                    } else {
+                        table.to_owned()
+                    }
+                } else {
+                    table.to_owned()
+                };
+                datasets.push(name);
+            }
+        }
+
+        Ok(datasets)
+    }
+
+    /// Return the Arrow schema for a table reference without fetching any rows.
+    ///
+    /// `table_ref` is used verbatim in `FROM`, so quote Amp datasets yourself:
+    /// ```rust,no_run
+    /// client.describe("\"eth/blocks\"").await?;        // Amp dataset
+    /// client.describe("information_schema.tables").await?;  // system table
+    /// ```
+    pub async fn describe(&mut self, table_ref: &str) -> Result<Schema> {
+        let sql = format!("SELECT * FROM {table_ref} LIMIT 0");
+        let info = self.inner.execute(sql, None).await?;
+
+        // FlightInfo.schema is IPC-encoded — decode it if present.
+        if !info.schema.is_empty() {
+            let schema = Schema::try_from(IpcMessage(info.schema))?;
+            return Ok(schema);
+        }
+
+        // Fallback: fetch the first batch (may be the empty sentinel) and take its schema.
+        for endpoint in info.endpoint {
+            let Some(ticket) = endpoint.ticket else { continue };
+            let mut stream = self.inner.do_get(ticket).await?;
+            if let Some(batch) = stream.try_next().await? {
+                return Ok((*batch.schema()).clone());
+            }
+        }
+
+        Err(Error::Config(format!("could not determine schema for '{table_ref}'")))
     }
 
     /// Execute a SQL query and collect all result batches.
