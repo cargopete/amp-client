@@ -1,6 +1,7 @@
 use arrow_array::RecordBatch;
 use arrow_flight::sql::client::FlightSqlServiceClient;
-use futures::TryStreamExt;
+use async_stream::try_stream;
+use futures::{Stream, StreamExt, TryStreamExt};
 use tonic::transport::{Channel, Endpoint};
 
 use crate::{auth, error::{Error, Result}};
@@ -23,6 +24,36 @@ impl Client {
     /// Returns a builder for fine-grained configuration.
     pub fn builder() -> ClientBuilder {
         ClientBuilder::default()
+    }
+
+    /// Execute a SQL query and return a lazy stream of record batches.
+    ///
+    /// Batches are yielded as they arrive; nothing is buffered in memory.
+    /// Use this for large result sets. For small queries [`Client::query`] is simpler.
+    pub fn query_stream(
+        &mut self,
+        sql: &str,
+    ) -> impl Stream<Item = Result<RecordBatch>> + Send + 'static {
+        // Channel is a cheaply cloneable Arc-backed tower service — cloning
+        // shares the underlying connection without any extra I/O.
+        let mut client = self.inner.clone();
+        let sql = sql.to_owned();
+
+        try_stream! {
+            let info = client.execute(sql, None).await?;
+
+            for endpoint in info.endpoint {
+                let Some(ticket) = endpoint.ticket else { continue };
+                let stream = client.do_get(ticket).await?;
+                let mut stream = std::pin::pin!(stream);
+                while let Some(batch) = stream.next().await {
+                    let batch = batch?;
+                    if batch.num_rows() > 0 {
+                        yield batch;
+                    }
+                }
+            }
+        }
     }
 
     /// Execute a SQL query and collect all result batches.

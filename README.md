@@ -80,6 +80,21 @@ WHERE block_number > 19000000
 LIMIT 100
 ```
 
+For small queries, results come back as `Vec<RecordBatch>`. For large datasets use `query_stream` to process batches as they arrive without buffering everything in memory:
+
+```rust
+use amp_client::Client;
+use futures::{pin_mut, StreamExt};
+
+let stream = client.query_stream(r#"SELECT * FROM "acme/eth_mainnet""#);
+pin_mut!(stream);
+
+while let Some(batch) = stream.next().await {
+    let batch = batch?;
+    println!("{} rows", batch.num_rows());
+}
+```
+
 Results come back as `Vec<RecordBatch>`. Each batch holds typed columnar data — call `.schema()` to inspect field types and `.column(i)` to access arrays.
 
 ## Running ampd locally
@@ -138,7 +153,7 @@ See [`examples/test.rhai`](examples/test.rhai) for the full example. Requires `a
 
 Things planned or under consideration, roughly in order:
 
-**v0.2 — streaming**
+**~~v0.2 — streaming~~** ✓ _done_
 - `query_stream()` returning `impl Stream<Item = Result<RecordBatch>>` for large result sets without materialising everything in memory
 
 **v0.3 — schema introspection**

@@ -29,5 +29,13 @@ let multi = query("SELECT v FROM (VALUES (1),(2),(3)) t(v)");
 assert(multi.len() == 3, `expected 3 rows, got ${multi.len()}`);
 print(`row count: ${multi.len()}`);
 
+print("── streaming API ───────────────────────────────");
+
+let streamed = query_stream("SELECT v FROM (VALUES (10),(20),(30)) t(v)");
+assert(streamed.len() == 3, `expected 3 streamed rows, got ${streamed.len()}`);
+assert(streamed[0].v == 10, "first streamed value should be 10");
+assert(streamed[2].v == 30, "last streamed value should be 30");
+print(`streamed ${streamed.len()} rows via query_stream`);
+
 print("");
 print("all assertions passed ✓");

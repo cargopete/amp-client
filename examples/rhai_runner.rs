@@ -13,6 +13,7 @@ use std::{
 };
 
 use amp_client::{Client, RecordBatch};
+use futures::StreamExt;
 use arrow_array::{
     Array, BooleanArray, Date32Array, Date64Array, Float32Array, Float64Array, Int16Array,
     Int32Array, Int64Array, Int8Array, StringArray, UInt16Array, UInt32Array, UInt64Array,
@@ -124,6 +125,23 @@ fn main() {
     engine.register_fn("assert", |cond: bool, msg: String| {
         if !cond {
             panic!("assertion failed: {msg}");
+        }
+    });
+
+    // query_stream(sql: String) -> Array of row maps (uses streaming API under the hood)
+    let client_clone = Arc::clone(&client);
+    let rt_handle = rt.handle().clone();
+    engine.register_fn("query_stream", move |sql: String| -> Vec<Dynamic> {
+        let mut c = client_clone.lock().unwrap();
+        let stream = std::pin::pin!(c.query_stream(&sql));
+        let batches = rt_handle
+            .block_on(stream.collect::<Vec<_>>())
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()
+            .expect("query_stream failed");
+        match batches_to_rhai(&batches) {
+            d if d.is::<Vec<Dynamic>>() => d.cast::<Vec<Dynamic>>(),
+            _ => vec![],
         }
     });
 
