@@ -1,0 +1,22 @@
+[package]
+name = "amp-client"
+version = "0.1.0"
+edition = "2021"
+description = "Rust client for the Amp blockchain database (Arrow Flight gRPC)"
+license = "MIT"
+repository = "https://github.com/pepemontana7/amp-client"
+keywords = ["amp", "blockchain", "arrow-flight", "grpc"]
+categories = ["database"]
+
+[dependencies]
+arrow-array = "58"
+arrow-flight = { version = "58", features = ["flight-sql-experimental"] }
+arrow-schema = "58"
+futures = "0.3"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread"] }
+tokio-stream = "0.1"
+tonic = { version = "0.14", features = ["tls-ring", "tls-native-roots"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
