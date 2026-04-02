@@ -138,6 +138,32 @@ impl Client {
         .await
     }
 
+    /// Execute a SQL query and return the results as a Polars [`DataFrame`](polars::prelude::DataFrame).
+    ///
+    /// Requires the `polars` feature flag.
+    ///
+    /// ```rust,no_run
+    /// # #[tokio::main] async fn main() -> amp_client::Result<()> {
+    /// let mut client = amp_client::Client::connect("grpc://localhost:1602").await?;
+    /// let df = client.query_polars("SELECT * FROM \"eth/blocks\" LIMIT 100").await?;
+    /// println!("{df}");
+    /// let lf = df.lazy(); // chain polars operations
+    /// # Ok(()) }
+    /// ```
+    #[cfg(feature = "polars")]
+    pub async fn query_polars(
+        &mut self,
+        sql: &str,
+    ) -> Result<polars::prelude::DataFrame> {
+        let batches = self.query(sql).await?;
+        let schema = batches
+            .first()
+            .map(|b| b.schema())
+            .unwrap_or_else(|| std::sync::Arc::new(arrow_schema::Schema::empty()));
+        crate::polars_ext::to_dataframe(&schema, &batches)
+            .map_err(|e| Error::Config(e.to_string()))
+    }
+
     /// Execute a SQL query and collect all result batches.
     ///
     /// Table references follow Amp's `"namespace/table"` convention,

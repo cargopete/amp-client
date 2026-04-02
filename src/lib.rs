@@ -5,6 +5,8 @@ mod pool;
 mod retry;
 #[cfg(feature = "datafusion")]
 mod table_provider;
+#[cfg(feature = "polars")]
+mod polars_ext;
 
 pub use client::{Client, ClientBuilder};
 pub use error::{Error, Result};

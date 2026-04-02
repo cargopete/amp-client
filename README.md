@@ -87,6 +87,33 @@ let client = Client::builder()
 
 Retried on: `Unavailable`, `DeadlineExceeded`, `ResourceExhausted`, `Unknown`, `Aborted`, and transport errors. Streaming (`query_stream`) is not retried.
 
+## Polars integration
+
+Enable the `polars` feature to get results as a Polars [`DataFrame`](https://docs.rs/polars/latest/polars/prelude/struct.DataFrame.html):
+
+```toml
+amp-client = { version = "0.1", features = ["polars"] }
+```
+
+```rust
+let mut client = Client::connect("grpc://localhost:1602").await?;
+
+let df = client
+    .query_polars(r#"SELECT * FROM "eth/blocks" LIMIT 1000"#)
+    .await?;
+
+println!("{df}");
+
+// Chain lazy operations — filter, aggregate, join, export to Parquet, etc.
+use polars::prelude::*;
+let summary = df.lazy()
+    .select([col("block_number").max()])
+    .collect()?;
+println!("{summary}");
+```
+
+Conversion uses the Arrow IPC format as a zero-copy-friendly bridge between `arrow-rs` and Polars.
+
 ## DataFusion integration
 
 Enable the `datafusion` feature to register Amp datasets as DataFusion tables:
@@ -237,10 +264,12 @@ Things planned or under consideration, roughly in order:
 **~~Retry and backoff~~** ✓ _done_
 - `RetryConfig` on `ClientBuilder` — exponential backoff with optional jitter, off by default
 
+**~~Polars integration~~** ✓ _done_
+- `query_polars()` — returns a Polars `DataFrame` directly; IPC bridge between arrow-rs v58 and Polars; `df.lazy()` for chained operations
+
 **Unscheduled / considering**
 - JSON Lines HTTP transport as a fallback for environments where gRPC is not available
 - `ampctl login` OAuth flow so callers can obtain tokens programmatically
-- Polars `LazyFrame` helper (optional feature flag)
 - Async iterator / `for await` ergonomics once `AsyncIterator` stabilises in Rust
 
 Contributions and issue reports are welcome. This is MIT-licensed and entirely independent of Edge & Node.
