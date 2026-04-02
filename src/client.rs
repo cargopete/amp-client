@@ -10,6 +10,7 @@ use crate::{auth, error::{Error, Result}};
 /// A connected Amp client.
 ///
 /// Obtain one via [`Client::connect`] or [`Client::builder`].
+#[derive(Debug)]
 pub struct Client {
     inner: FlightSqlServiceClient<Channel>,
 }

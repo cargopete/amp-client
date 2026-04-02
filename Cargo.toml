@@ -11,6 +11,9 @@ categories = ["database"]
 [dependencies]
 arrow-array = "58"
 async-stream = "0.3"
+async-trait = "0.1"
+arrow-ipc = { version = "58", optional = true }
+datafusion = { version = "50", optional = true }
 deadpool = { version = "0.13", features = ["managed", "rt_tokio_1"] }
 arrow-flight = { version = "58", features = ["flight-sql-experimental"] }
 arrow-schema = "58"
@@ -20,7 +23,11 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 tokio-stream = "0.1"
 tonic = { version = "0.14", features = ["tls-ring", "tls-native-roots"] }
 
+[features]
+datafusion = ["dep:datafusion", "dep:arrow-ipc"]
+
 [dev-dependencies]
+anyhow = "1"
 chrono = "0.4"
 tokio = { version = "1", features = ["full"] }
 rhai = "1"

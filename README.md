@@ -65,6 +65,31 @@ let mut client = Client::builder()
     .await?;
 ```
 
+## DataFusion integration
+
+Enable the `datafusion` feature to register Amp datasets as DataFusion tables:
+
+```toml
+amp-client = { version = "0.1", features = ["datafusion"] }
+```
+
+```rust
+use std::sync::Arc;
+use amp_client::{Pool, AmpTable};
+use datafusion::prelude::*;
+
+let pool = Pool::connect("grpc://localhost:1602").await?;
+let ctx = SessionContext::new();
+
+ctx.register_table("eth_blocks", Arc::new(AmpTable::new(pool, "eth/blocks").await?))?;
+
+// Join Amp data with local data, run aggregations, export to Parquet — the full DataFusion ecosystem.
+ctx.sql("SELECT block_number FROM eth_blocks ORDER BY block_number DESC LIMIT 10")
+   .await?
+   .show()
+   .await?;
+```
+
 ## Connection pool
 
 For multi-threaded applications use `Pool` instead of wrapping `Client` in `Arc<Mutex<>>`:
@@ -184,8 +209,8 @@ Things planned or under consideration, roughly in order:
 **~~v0.4 — connection pool~~** ✓ _done_
 - `Pool` / `PoolBuilder` / `PooledClient` for multi-threaded applications; `Pool` is `Clone + Send + Sync`, connections are lazy and returned on drop
 
-**v0.5 — DataFusion integration** _(optional feature flag)_
-- A DataFusion `TableProvider` that registers Amp datasets as queryable tables, enabling joins between Amp data and local data sources
+**~~v0.5 — DataFusion integration~~** ✓ _done_
+- `AmpTable` — a DataFusion `TableProvider` behind the `datafusion` feature flag; registers Amp datasets as queryable tables, enabling joins with local data sources
 
 **Unscheduled / considering**
 - JSON Lines HTTP transport as a fallback for environments where gRPC is not available

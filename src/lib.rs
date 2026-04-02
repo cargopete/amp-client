@@ -2,10 +2,14 @@ mod auth;
 mod client;
 mod error;
 mod pool;
+#[cfg(feature = "datafusion")]
+mod table_provider;
 
 pub use client::{Client, ClientBuilder};
 pub use error::{Error, Result};
 pub use pool::{Pool, PoolBuilder, PooledClient};
+#[cfg(feature = "datafusion")]
+pub use table_provider::AmpTable;
 
 // Re-export the Arrow types callers will need to work with results.
 pub use arrow_array::RecordBatch;

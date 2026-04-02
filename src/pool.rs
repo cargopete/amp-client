@@ -37,6 +37,7 @@ use crate::{
 
 // ── Manager ───────────────────────────────────────────────────────────────────
 
+#[derive(Debug)]
 struct ClientManager {
     url: String,
     token: Option<String>,
@@ -93,7 +94,7 @@ type InnerPool = managed::Pool<ClientManager, PooledClient>;
 ///
 /// Backed by deadpool. Cloning is cheap — all clones share the same pool.
 /// Connections are opened lazily on first use.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Pool(InnerPool);
 
 impl Pool {
